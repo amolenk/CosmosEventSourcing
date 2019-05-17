@@ -1,0 +1,29 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleUI", "ConsoleUI\ConsoleUI.csproj", "{FF7F8770-77FB-43EC-8037-B0AD41E4FEA4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventStore", "EventStore\EventStore.csproj", "{A61AE282-2543-4BD2-96BF-FED10A8B6BB6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Projections", "Projections\Projections.csproj", "{BCA8CECC-F05A-4C9B-AFAE-C0172A0B8417}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FF7F8770-77FB-43EC-8037-B0AD41E4FEA4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF7F8770-77FB-43EC-8037-B0AD41E4FEA4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF7F8770-77FB-43EC-8037-B0AD41E4FEA4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF7F8770-77FB-43EC-8037-B0AD41E4FEA4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A61AE282-2543-4BD2-96BF-FED10A8B6BB6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A61AE282-2543-4BD2-96BF-FED10A8B6BB6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A61AE282-2543-4BD2-96BF-FED10A8B6BB6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A61AE282-2543-4BD2-96BF-FED10A8B6BB6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BCA8CECC-F05A-4C9B-AFAE-C0172A0B8417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BCA8CECC-F05A-4C9B-AFAE-C0172A0B8417}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BCA8CECC-F05A-4C9B-AFAE-C0172A0B8417}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BCA8CECC-F05A-4C9B-AFAE-C0172A0B8417}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
