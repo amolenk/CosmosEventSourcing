@@ -17,21 +17,17 @@ namespace EventStore
         private readonly string _database;
         private readonly string _container;
 
-        private CosmosDBEventStore(DocumentClient client, string database, string container)
+        public CosmosDBEventStore(string endpointUri, string authKey, string database,
+            string container = "events")
         {
-            _client = client;
+            _client = new DocumentClient(new Uri(endpointUri), authKey);
             _database = database;
             _container = container;
         }
 
-        public static async Task<CosmosDBEventStore> CreateAsync(string endpointUri, string authKey, string database,
-        string container = "events")
+        public Task MigrateAsync()
         {
-            var client = new DocumentClient(new Uri(endpointUri), authKey);
-
-            await new Migration(client, database, container).RunAsync();
-
-            return new CosmosDBEventStore(client, database, container);
+            return new Migration(_client, _database, _container).RunAsync();
         }
 
         public async Task<EventStream> LoadStreamAsync(string id)
@@ -55,35 +51,48 @@ namespace EventStore
                 {
                     version = item.stream.version;
 
-                    var eventType = Type.GetType(item.clrtype);
-                    events.Add(JObject.FromObject(item.payload).ToObject(eventType));
+                    events.Add(DeserializeEvent(item));
                 }
             }
 
             return new EventStream(id, version, events);
         }
 
-        public async Task<bool> AppendToStreamAsync(string id, int expectedVersion, IEnumerable<IEvent> events)
+        public async Task<bool> AppendToStreamAsync(string streamId, int expectedVersion, IEnumerable<IEvent> events)
         {
-            var wrappedEventVersion = expectedVersion + 1;
-            var wrappedEvents = events.Select(e => new
+            // Serialize events to single JSON array to pass to stored procedure.
+            var json = SerializeEvents(streamId, expectedVersion, events);
+
+            // Call store procedure to bulk insert events (only if the expected version matches).
+            var uri = UriFactory.CreateStoredProcedureUri(_database, _container, "spAppendToStream");
+            var options = new RequestOptions { PartitionKey = new PartitionKey(streamId) };
+            var result = await _client.ExecuteStoredProcedureAsync<bool>(uri, options, streamId, expectedVersion, json);
+            
+            return result.Response;
+        }
+
+        private static string SerializeEvents(string streamId, int expectedVersion, IEnumerable<IEvent> events)
+        {
+            var items = events.Select(e => new
             {
+                id = $"{streamId}:{++expectedVersion}:{e.GetType().Name}",
                 stream = new
                 {
-                    id = id,
-                    version = wrappedEventVersion++
+                    id = streamId,
+                    version = expectedVersion
                 },
-                clrtype = e.GetType(),
+                eventType = e.GetType().Name,
                 payload = e
             });
 
-            var uri = UriFactory.CreateStoredProcedureUri(_database, _container, "spAppendToStream");
-            var eventsJson = JsonConvert.SerializeObject(wrappedEvents);
+            return JsonConvert.SerializeObject(items);
+        }
 
-            var options = new RequestOptions { PartitionKey = new PartitionKey(id) };
-            var result = await _client.ExecuteStoredProcedureAsync<bool>(uri, options, id, expectedVersion, eventsJson);
+        private static IEvent DeserializeEvent(dynamic item)
+        {
+            var eventType = Type.GetType($"Demo.Domain.Events.{item.eventType}, Demo");
             
-            return result.Response;
+            return JObject.FromObject(item.payload).ToObject(eventType);
         }
     }
 }

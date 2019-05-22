@@ -5,10 +5,10 @@ namespace EventStore
 {
     public interface IEventStore
     {
-        Task<EventStream> LoadStreamAsync(string id);
+        Task<EventStream> LoadStreamAsync(string streamId);
   
         Task<bool> AppendToStreamAsync(
-            string id,
+            string streamId,
             int expectedVersion,
             IEnumerable<IEvent> events);
     }

@@ -14,10 +14,13 @@
                 throw new Error("No results from stream version query.");
             }
 
-            if (expectedVersion == 0 && !items[0].$1) {
+            var currentVersion = items[0].$1;
+
+            // Concurrency checks.
+            if (expectedVersion == 0 && !currentVersion) {
                 __.response.setBody(true);
             }
-            else if (expectedVersion == items[0].$1) {
+            else if (expectedVersion == currentVersion) {
                 __.response.setBody(true);
             }
             else {
@@ -25,6 +28,7 @@
                 return;
             }
 
+            // Everything's fine, bulk insert the events.
             JSON.parse(events).forEach(event => {
                 __.createDocument(__.getSelfLink(), event);
             });

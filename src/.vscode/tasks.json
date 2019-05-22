@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/ConsoleUI/ConsoleUI.csproj"
+                "${workspaceFolder}/CosmosEventSourcing.sln"
             ],
             "problemMatcher": "$tsc",
             "group": {

@@ -34,53 +34,51 @@ namespace Projections
         {
             foreach (var document in documents)
             {
-                try
-                {
-                    var eventType = Type.GetType(document.GetPropertyValue<string>("clrtype"));
+                var @event = DeserializeEvent(document);
 
-                    foreach (var projection in _projections)
+                foreach (var projection in _projections)
+                {
+                    if (!projection.CanHandle(@event))
                     {
-                        if (!projection.CanHandle(eventType))
+                        continue;
+                    }
+
+                    var streamInfo = document.GetPropertyValue<JObject>("stream");
+                    var viewName = projection.GetViewName(streamInfo["id"].Value<string>(), @event);
+
+                    var handled = false;
+                    while (!handled)
+                    {
+                        var view = await _viewRepository.LoadViewAsync(viewName);
+                        if (view.IsNewerThanCheckpoint(context.PartitionKeyRangeId, document))
                         {
-                            continue;
+                            projection.Apply(@event, view);
+                        
+                            view.UpdateCheckpoint(context.PartitionKeyRangeId, document);
+
+                            handled = await _viewRepository.SaveViewAsync(viewName, view);
+                        }
+                        else
+                        {
+                            // Already handled.
+                            handled = true;
                         }
 
-                        var @event = (IEvent)document.GetPropertyValue<JObject>("payload").ToObject(eventType);   
-                        var viewName = projection.GetViewName(@event);
-
-                        var handled = false;
-                        while (!handled)
+                        if (!handled)
                         {
-                            var view = await _viewRepository.LoadViewAsync(viewName);
-                            if (view.IsNewerThanCheckpoint(context.PartitionKeyRangeId, document))
-                            {
-                                Console.WriteLine($"[{viewName}] Projecting event {document.Id}.");
-
-                                projection.Apply(@event, view);
-                            
-                                view.UpdateCheckpoint(context.PartitionKeyRangeId, document);
-
-                                handled = await _viewRepository.SaveViewAsync(viewName, view);
-                            }
-                            else
-                            {
-                                Console.WriteLine($"[{viewName}] Event {document.Id} already projected.");
-                                handled = true;
-                            }
-
-                            if (!handled)
-                            {
-                                System.Console.WriteLine("Failed, trying again!");
-                                await Task.Delay(1000);
-                            }
+                            // Oh noos! Somebody changed the view in the meantime, let's wait and try again.
+                            await Task.Delay(500);
                         }
                     }
                 }
-                catch (Exception ex)
-                {
-                    Console.WriteLine(ex);
-                }
             }
+        }
+
+        private static IEvent DeserializeEvent(Document document)
+        {
+            var eventType = Type.GetType($"Demo.Domain.Events.{document.GetPropertyValue<string>("eventType")}, Demo");
+
+            return (IEvent)document.GetPropertyValue<JObject>("payload").ToObject(eventType);
         }
     }
 }

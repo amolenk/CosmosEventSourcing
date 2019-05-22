@@ -5,7 +5,7 @@ using Newtonsoft.Json.Linq;
 
 namespace Projections
 {
-    public class Projection<TView> : IProjection
+    public abstract class Projection<TView> : IProjection
         where TView : new()
     {
         private readonly Dictionary<Type, Action<IEvent, object>> _handlers;
@@ -15,9 +15,9 @@ namespace Projections
             _handlers = new Dictionary<Type, Action<IEvent, object>>();
         }
 
-        public bool CanHandle(Type eventType) => _handlers.ContainsKey(eventType);
+        public bool CanHandle(IEvent @event) => _handlers.ContainsKey(@event.GetType());
 
-        public virtual string GetViewName(IEvent @event) => GetType().Name;
+        public virtual string GetViewName(string streamId, IEvent @event) => typeof(TView).Name;
 
         public void Apply(IEvent @event, IView view)
         {
