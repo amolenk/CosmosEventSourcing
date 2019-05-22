@@ -21,10 +21,9 @@ namespace Demo
         private static readonly string AuthKey = Environment.GetEnvironmentVariable("COSMOSDB_EVENT_SOURCING_KEY");
 
         [TestMethod]
-        public async Task SC01_AddNewStreamAsync()
+        public async Task SC01_StreamsAsync()
         {
             var eventStore = new CosmosDBEventStore(EndpointUri, AuthKey, Database);
-            await eventStore.MigrateAsync();
 
             var meterRegistered = new MeterRegistered
             {
@@ -34,88 +33,49 @@ namespace Demo
                 ActivationCode = "supersecret"
             };
 
+            var meterActivated = new MeterActivated();
+
+            // 1. Add a new stream.
             var streamId = $"meter:{meterRegistered.MeterId}";
 
-            var succes = await eventStore.AppendToStreamAsync(streamId, 0, new IEvent[]
-            {
-                meterRegistered
-            });
+            var succes = await eventStore.AppendToStreamAsync(
+                streamId,
+                0,
+                new IEvent[] { meterRegistered, meterActivated });
 
             Assert.IsTrue(succes, "Unexpected stream version encountered.");
         }
 
         [TestMethod]
-        public async Task SC02_AppendToExistingStreamAsync()
-        {
-            var eventStore = new CosmosDBEventStore(EndpointUri, AuthKey, Database);
-
-            var meterActivated = new MeterActivated();
-            var meterReadingsCollected = new MeterReadingsCollected
-            {
-                Date = DateTime.Today,
-                Readings = GenerateMeterReadings(DateTime.Today).ToArray()
-            };
-
-            var succes = await eventStore.AppendToStreamAsync("meter:1", 1, new IEvent[]
-            {
-                meterActivated,
-                meterReadingsCollected
-            });
-
-            Assert.IsTrue(succes, "Unexpected stream version encountered.");
-        }
-
-        [TestMethod]
-        public async Task SC03_ReadFromStreamAsync()
-        {
-            var eventStore = new CosmosDBEventStore(EndpointUri, AuthKey, Database);
-
-            var stream = await eventStore.LoadStreamAsync("meter:1");
-
-            Assert.AreEqual(3, stream.Events.Count(), "Stream meter:1 should contain 3 events at this point.");
-        }
-
-        [TestMethod]
-        public async Task SC04_NewAggregateAsync()
+        public async Task SC02_DomainAsync()
         {
             var eventStore = new CosmosDBEventStore(EndpointUri, AuthKey, Database);
             
-            // Request parameters
+            // Request parameters.
             var meterId = "2";
             var postalCode = "111 64";
             var houseNumber = "4";
             var activationCode = "supersecret";
 
+            // 1. New domain object.
             var meter = new Meter(meterId, postalCode, houseNumber, activationCode);
 
             var repository = new MeterRepository(eventStore);
             var succes = await repository.SaveMeterAsync(meter);
 
             Assert.IsTrue(succes, "Unexpected stream version encountered.");
-        }
 
-        [TestMethod]
-        public async Task SC05_UpdateAggregateAsync()
-        {
-            var eventStore = new CosmosDBEventStore(EndpointUri, AuthKey, Database);
-
-            // Request parameters
-            var meterId = "2";
-            var activationCode = "supersecret";
-
-            var repository = new MeterRepository(eventStore);
-
-            var meter = await repository.LoadMeterAsync(meterId);
-
+            // 2. Call business logic on domain object.
+            meter = await repository.LoadMeterAsync(meterId);
             meter.Activate(activationCode);
 
-            var succes = await repository.SaveMeterAsync(meter);
+            succes = await repository.SaveMeterAsync(meter);
 
             Assert.IsTrue(succes, "Unexpected stream version encountered.");
         }
 
         [TestMethod]
-        public Task SC06_GenerateMeterReadingsAsync()
+        public Task SC03A_GenerateMeterReadingsAsync()
         {
             // Generate some readings for the next 14 days.
             return Task.WhenAll(
@@ -124,7 +84,7 @@ namespace Demo
         }
 
         [TestMethod]
-        public async Task SC07_RunProjectionsAsync()
+        public async Task SC03B_RunProjectionsAsync()
         {
             var projectionEngine = new CosmosDBProjectionEngine(EndpointUri, AuthKey, Database);
 
@@ -137,6 +97,12 @@ namespace Demo
         }
 
         #region Helper Methods
+
+        [TestMethod]
+        public Task Migrate()
+        {
+            return new CosmosDBEventStore(EndpointUri, AuthKey, Database).MigrateAsync();
+        }
 
         private async Task AppendReadingsCollectedEvents(string streamId, DateTime fromDate, int dayCount)
         {

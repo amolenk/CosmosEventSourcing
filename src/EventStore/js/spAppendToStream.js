@@ -16,22 +16,19 @@
 
             var currentVersion = items[0].$1;
 
-            // Concurrency checks.
-            if (expectedVersion == 0 && !currentVersion) {
-                __.response.setBody(true);
-            }
-            else if (expectedVersion == currentVersion) {
+            // Concurrency check.
+            if ((!currentVersion && expectedVersion == 0)
+                || (currentVersion == expectedVersion))
+            {
+                // Everything's fine, bulk insert the events.
+                JSON.parse(events).forEach(event =>
+                    __.createDocument(__.getSelfLink(), event));
+
                 __.response.setBody(true);
             }
             else {
                 __.response.setBody(false);
-                return;
             }
-
-            // Everything's fine, bulk insert the events.
-            JSON.parse(events).forEach(event => {
-                __.createDocument(__.getSelfLink(), event);
-            });
         });
 
     if (!isAccepted) throw new Error('The query was not accepted by the server.');

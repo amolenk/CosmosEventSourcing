@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using Demo.Domain.Events;
@@ -7,6 +8,11 @@ using Projections;
 
 namespace ConsoleUI
 {
+    public class DailyTotalsByWeek
+    {
+        public Dictionary<DateTime, int> Consumption { get; } = new Dictionary<DateTime, int>();
+    }
+
     public class DailyTotalsByWeekProjection : Projection<DailyTotalsByWeek>
     {
         public DailyTotalsByWeekProjection()
