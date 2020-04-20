@@ -35,7 +35,7 @@ namespace Demo
             leasesContainer.PartitionKey.Paths.Add("/id");
 
             DocumentCollection viewsContainer = new DocumentCollection();
-            viewsContainer.Id = "leases";
+            viewsContainer.Id = "views";
             viewsContainer.PartitionKey.Paths.Add("/id");
 
             StoredProcedure appendToStreamsSproc = new StoredProcedure();
