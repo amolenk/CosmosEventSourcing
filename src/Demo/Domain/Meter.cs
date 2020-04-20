@@ -19,12 +19,14 @@ namespace Demo.Domain
 
         internal int Version { get; private set; }
 
-        internal List<IEvent> Changes { get; } = new List<IEvent>();
+        internal List<IEvent> Changes { get; }
 
         private string _activationCode;
 
         public Meter(string meterId, string postalCode, string houseNumber, string activationCode)
         {
+            Changes = new List<IEvent>();
+            
             Apply(new MeterRegistered
             {
                 MeterId = meterId,
@@ -36,6 +38,8 @@ namespace Demo.Domain
 
         public Meter(IEnumerable<IEvent> events)
         {
+            Changes = new List<IEvent>();
+
             foreach (var @event in events)
             { 
                 Mutate(@event);

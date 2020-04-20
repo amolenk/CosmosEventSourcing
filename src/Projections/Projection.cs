@@ -15,7 +15,7 @@ namespace Projections
             _handlers = new Dictionary<Type, Action<IEvent, object>>();
         }
 
-        public bool CanHandle(IEvent @event) => _handlers.ContainsKey(@event.GetType());
+        public bool IsSubscribedTo(IEvent @event) => _handlers.ContainsKey(@event.GetType());
 
         public virtual string GetViewName(string streamId, IEvent @event) => typeof(TView).Name;
 

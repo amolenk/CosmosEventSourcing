@@ -6,7 +6,7 @@ namespace Projections
 {
     public interface IProjection
     {
-        bool CanHandle(IEvent @event);
+        bool IsSubscribedTo(IEvent @event);
 
         string GetViewName(string streamId, IEvent @event);
 

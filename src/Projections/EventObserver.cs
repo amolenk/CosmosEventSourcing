@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using EventStore;
@@ -36,13 +37,11 @@ namespace Projections
             {
                 var @event = DeserializeEvent(document);
 
-                foreach (var projection in _projections)
+                var subscribedProjections = _projections
+                    .Where(projection => projection.IsSubscribedTo(@event));
+                
+                foreach (var projection in subscribedProjections)
                 {
-                    if (!projection.CanHandle(@event))
-                    {
-                        continue;
-                    }
-
                     var streamInfo = document.GetPropertyValue<JObject>("stream");
                     var viewName = projection.GetViewName(streamInfo["id"].Value<string>(), @event);
 

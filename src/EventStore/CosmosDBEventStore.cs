@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Azure.Documents;
@@ -23,11 +22,6 @@ namespace EventStore
             _client = new DocumentClient(new Uri(endpointUri), authKey);
             _database = database;
             _container = container;
-        }
-
-        public Task MigrateAsync()
-        {
-            return new Migration(_client, _database, _container).RunAsync();
         }
 
         public async Task<EventStream> LoadStreamAsync(string id)
