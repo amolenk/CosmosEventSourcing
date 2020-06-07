@@ -1,7 +1,7 @@
 using Demo.Domain.Events;
 using Projections;
 
-namespace ConsoleUI
+namespace Demo.Domain.Projections
 {
     public class TotalActivatedMeters
     {

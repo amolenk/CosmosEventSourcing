@@ -6,7 +6,7 @@ using Demo.Domain.Events;
 using EventStore;
 using Projections;
 
-namespace ConsoleUI
+namespace Demo.Domain.Projections
 {
     public class DailyTotalsByWeek
     {

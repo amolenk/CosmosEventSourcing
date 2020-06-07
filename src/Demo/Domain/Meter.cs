@@ -17,6 +17,8 @@ namespace Demo.Domain
 
         public int FailedActivationAttempts { get; private set; }
 
+        public DateTime? LatestReadingDate { get; private set; }
+
         internal int Version { get; private set; }
 
         internal List<IEvent> Changes { get; }
@@ -74,7 +76,7 @@ namespace Demo.Domain
             ((dynamic)this).When((dynamic)@event);
         }
 
-        private void When(MeterRegistered @event)
+        private void When(MeterRegistered @event)
         {
             MeterId = @event.MeterId;
             PostalCode = @event.PostalCode;
@@ -82,18 +84,57 @@ namespace Demo.Domain
             _activationCode = @event.ActivationCode;
         }
 
-        private void When(MeterActivated @event)
+        private void When(MeterActivated @event)
         {
             IsActivated = true;
         }
 
-        private void When(MeterReadingsCollected @event)
+        private void When(MeterReadingsCollected @event)
         {
+            if (LatestReadingDate == null || @event.Date > LatestReadingDate)
+            {
+                LatestReadingDate = @event.Date;
+            }
         }
 
         private void When(MeterActivationFailed @event)
         {
             FailedActivationAttempts += 1;
         }
+
+        #region Snapshot Functionality
+        
+        public Meter(MeterSnapshot snapshot, int version, IEnumerable<IEvent> events)
+        {
+            MeterId = snapshot.Id;
+            PostalCode = snapshot.PostalCode;
+            HouseNumber = snapshot.HouseNumber;
+            IsActivated = snapshot.IsActivated;
+            FailedActivationAttempts = snapshot.FailedActivationAttempts;
+            LatestReadingDate = snapshot.LatestReadingDate;
+            _activationCode = snapshot.ActivationCode;
+            Changes = new List<IEvent>();
+            Version = version;
+
+            foreach (var @event in events)
+            { 
+                Mutate(@event);
+                Version += 1;
+            }
+        }
+
+        public MeterSnapshot GetSnapshot()
+        {
+            return new MeterSnapshot(
+                MeterId,
+                PostalCode,
+                HouseNumber,
+                IsActivated,
+                FailedActivationAttempts,
+                LatestReadingDate,
+                _activationCode);
+        }
+
+        #endregion
     }
 }
