@@ -1,7 +1,4 @@
-using System;
-using System.Collections.Generic;
-using EventStore;
-using Microsoft.Azure.Documents;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Projections
@@ -9,56 +6,45 @@ namespace Projections
     public class View : IView
     {
         public View()
-            : this(new Dictionary<string, ViewPartitionCheckpoint>(), new JObject(), null)
+            : this(new ViewCheckpoint(), new JObject(), null)
         {
         }
 
-        public View(Dictionary<string, ViewPartitionCheckpoint> partitionCheckpoints, JObject payload, string etag)
+        public View(ViewCheckpoint logicalCheckpoint, JObject payload, string etag)
         {
             Payload = payload;
-            PartitionCheckpoints = partitionCheckpoints;
+            LogicalCheckpoint = logicalCheckpoint;
             Etag = etag;
         }
 
-        public Dictionary<string, ViewPartitionCheckpoint> PartitionCheckpoints { get; }
+        [JsonProperty("logicalCheckpoint")]
+        public ViewCheckpoint LogicalCheckpoint { get; set; }
 
+        [JsonProperty("payload")]
         public JObject Payload { get; set; }
 
+        [JsonProperty("_etag")]
         public string Etag { get;set; }
 
-        public bool IsNewerThanCheckpoint(string partitionKeyRangeId, Document document)
+        public bool IsNewerThanCheckpoint(Change change)
         {
-            if (PartitionCheckpoints.ContainsKey(partitionKeyRangeId))
+            if (change.LogicalSequenceNumber == LogicalCheckpoint.LogicalSequenceNumber)
             {
-                var checkpoint = PartitionCheckpoints[partitionKeyRangeId];
-
-                if (document.Timestamp == checkpoint.Timestamp)
-                {
-                    return !checkpoint.DocumentIds.Contains(document.Id);
-                }
-
-                return document.Timestamp > checkpoint.Timestamp;
+                return !LogicalCheckpoint.ItemIds.Contains(change.Id);
             }
 
-            return true;
+            return change.LogicalSequenceNumber > LogicalCheckpoint.LogicalSequenceNumber;
         }
 
-        public void UpdateCheckpoint(string partitionKeyRangeId, Document document)
+        public void UpdateCheckpoint(Change change)
         {
-            if (!PartitionCheckpoints.ContainsKey(partitionKeyRangeId))
+            if (change.LogicalSequenceNumber != LogicalCheckpoint.LogicalSequenceNumber)
             {
-                PartitionCheckpoints.Add(partitionKeyRangeId, new ViewPartitionCheckpoint());   
+                LogicalCheckpoint.LogicalSequenceNumber = change.LogicalSequenceNumber;
+                LogicalCheckpoint.ItemIds.Clear();
             }
 
-            var checkpoint = PartitionCheckpoints[partitionKeyRangeId];
-
-            if (document.Timestamp != checkpoint.Timestamp)
-            {
-                checkpoint.Timestamp = document.Timestamp;
-                checkpoint.DocumentIds.Clear();
-            }
-
-            checkpoint.DocumentIds.Add(document.Id);
+            LogicalCheckpoint.ItemIds.Add(change.Id);
         }
     }
 }
