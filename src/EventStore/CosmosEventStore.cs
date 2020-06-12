@@ -24,6 +24,35 @@ namespace EventStore
             _containerId = containerId;
         }
 
+        public async Task<EventStream> LoadStreamAsync(string streamId)
+        {
+            Container container = _client.GetContainer(_databaseId, _containerId);
+
+            var sqlQueryText = "SELECT * FROM events e"
+                + " WHERE e.stream.id = @streamId"
+                + " ORDER BY e.stream.version"; 
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText)
+                .WithParameter("@streamId", streamId);
+
+            int version = 0;
+            var events = new List<IEvent>();
+
+            FeedIterator<EventWrapper> feedIterator = container.GetItemQueryIterator<EventWrapper>(queryDefinition);
+            while (feedIterator.HasMoreResults)
+            {
+                FeedResponse<EventWrapper> response = await feedIterator.ReadNextAsync();
+                foreach (var eventWrapper in response)
+                {
+                    version = eventWrapper.StreamInfo.Version;
+
+                    events.Add(eventWrapper.GetEvent(_eventTypeResolver));
+                }
+            }
+
+            return new EventStream(streamId, version, events);
+        }
+
         public async Task<EventStream> LoadStreamAsync(string streamId, int fromVersion)
         {
             Container container = _client.GetContainer(_databaseId, _containerId);

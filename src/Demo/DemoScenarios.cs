@@ -95,8 +95,8 @@ namespace Demo
 
             var readingsCollected = new MeterReadingsCollected
             {
-                Date = DateTime.Today,
-                Readings = GenerateMeterReadings(DateTime.Today).ToArray()
+                Date = new DateTime(2020, 4, 30),
+                Readings = GenerateMeterReadings(new DateTime(2020, 4, 30)).ToArray()
             };
                 
             var succes = await eventStore.AppendToStreamAsync(
@@ -153,8 +153,8 @@ namespace Demo
         {
             // Generate some readings.
             return Task.WhenAll(
-                AppendReadingsCollectedEvents("meter:87000001", DateTime.Today.AddDays(-3), 14),
-                AppendReadingsCollectedEvents("meter:87000002", DateTime.Today.AddDays(-3), 14));
+                AppendReadingsCollectedEvents("meter:87000001", new DateTime(2020, 5, 1), 14),
+                AppendReadingsCollectedEvents("meter:87000002", new DateTime(2020, 5, 1), 14));
         }
 
         [TestMethod]
@@ -184,14 +184,16 @@ namespace Demo
             var repository = new MeterRepository(eventStore);
             var meter = await repository.LoadMeterAsync(meterId);
 
-            await snapshotStore.SaveSnapshotAsync($"meter:{meterId}", meter.Version, meter.GetSnapshot());
+            var snapshot = meter.GetSnapshot();
+
+            await snapshotStore.SaveSnapshotAsync($"meter:{meterId}", meter.Version, snapshot);
         }
 
         [TestMethod]
         public Task SC06B_GenerateMeterReadingsAsync()
         {
             // Generate some more readings.
-            return AppendReadingsCollectedEvents("meter:87000001", DateTime.Today, 3);
+            return AppendReadingsCollectedEvents("meter:87000001", new DateTime(2020, 5, 15), 3);
         }
 
         [TestMethod]
@@ -216,7 +218,7 @@ namespace Demo
 
         #region Helper Methods
 
-        private async Task AppendReadingsCollectedEvents(string streamId, DateTime toDate, int dayCount)
+        private async Task AppendReadingsCollectedEvents(string streamId, DateTime fromDate, int dayCount)
         {
             IEventStore eventStore = new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId);
 
@@ -227,8 +229,8 @@ namespace Demo
             var events = Enumerable.Range(0, dayCount - 1)
                 .Select(i => new MeterReadingsCollected
                 {
-                    Date = toDate.AddDays(-i),
-                    Readings = GenerateMeterReadings(toDate.AddDays(-i)).ToArray()
+                    Date = fromDate.AddDays(i),
+                    Readings = GenerateMeterReadings(fromDate.AddDays(i)).ToArray()
                 })
                 .ToList();
             
@@ -243,8 +245,8 @@ namespace Demo
             {
                 new MeterReadingsCollected
                 {
-                    Date = toDate.AddDays(-dayCount),
-                    Readings = GenerateMeterReadings(toDate.AddDays(-dayCount)).ToArray()
+                    Date = fromDate.AddDays(dayCount - 1),
+                    Readings = GenerateMeterReadings(fromDate.AddDays(dayCount - 1)).ToArray()
                 }
             });
         }

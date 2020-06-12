@@ -42,7 +42,7 @@ namespace Projections
             var item = new 
             {
                 id = name,
-                logicalSequenceNumber = view.LogicalSequenceNumber,
+                logicalCheckpoint = view.LogicalCheckpoint,
                 payload = view.Payload
             };
 

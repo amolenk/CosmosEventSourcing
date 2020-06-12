@@ -84,11 +84,12 @@ namespace Projections
                         // NOTE: This only works if there's just a single physical partition in Cosmos DB.
                         // TODO: To support multiple partitions we need access to the leases to store
                         // a LSN per lease in the view. This is not yet possible in the V3 SDK.
-                        if (change.LogicalSequenceNumber > view.LogicalSequenceNumber)
+                        if (view.IsNewerThanCheckpoint(change))
                         {
                             projection.Apply(@event, view);
+                        
+                            view.UpdateCheckpoint(change);
 
-                            view.LogicalSequenceNumber = change.LogicalSequenceNumber;
                             handled = await _viewRepository.SaveViewAsync(viewName, view);
                         }
                         else
