@@ -103,7 +103,7 @@ namespace EventStore
         {
             var items = events.Select(e => new EventWrapper
             {
-                Id = $"{streamId}:{++expectedVersion}:{e.GetType().Name}",
+                Id = $"{streamId}:{++expectedVersion}",
                 StreamInfo = new StreamInfo
                 {
                     Id = streamId,
