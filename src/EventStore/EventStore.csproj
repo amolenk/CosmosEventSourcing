@@ -3,10 +3,10 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Folder Include="js\"/>
+    <Folder Include="js\" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.9.1"/>
+    <PackageReference Include="Microsoft.Azure.Cosmos" Version="3.16.0" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="js\*.*">
