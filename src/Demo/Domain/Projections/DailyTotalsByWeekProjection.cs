@@ -23,7 +23,7 @@ namespace Demo.Domain.Projections
         public override string GetViewName(string streamId, IEvent @event)
         {
             var meterId = streamId.Substring(streamId.IndexOf(':') + 1);
-            var weekNumber = GetIso8601WeekOfYear(((MeterReadingsCollected)@event).Date);
+            var weekNumber = GetIso8601WeekOfYear(((MeterReadingsCollected) @event).Date);
 
             return $"DailyTotalsByWeek:{meterId}:wk{weekNumber:00}";
         }

@@ -1,16 +1,16 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace Projections
+namespace Projections.Cosmos
 {
-    public class View : IView
+    public class CosmosView : IView
     {
-        public View()
+        public CosmosView()
             : this(new ViewCheckpoint(), new JObject(), null)
         {
         }
 
-        public View(ViewCheckpoint logicalCheckpoint, JObject payload, string etag)
+        public CosmosView(ViewCheckpoint logicalCheckpoint, JObject payload, string etag)
         {
             Payload = payload;
             LogicalCheckpoint = logicalCheckpoint;
@@ -19,12 +19,14 @@ namespace Projections
 
         [JsonProperty("logicalCheckpoint")]
         public ViewCheckpoint LogicalCheckpoint { get; set; }
-
+        
         [JsonProperty("payload")]
         public JObject Payload { get; set; }
 
         [JsonProperty("_etag")]
         public string Etag { get;set; }
+
+        public bool IsNew { get; set; }
 
         public bool IsNewerThanCheckpoint(Change change)
         {

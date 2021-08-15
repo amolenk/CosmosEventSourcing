@@ -15,6 +15,6 @@ namespace Projections
         public long LogicalSequenceNumber { get; set; }
 
         [JsonProperty("itemIds")]
-        public List<string> ItemIds { get; }
+        public List<string> ItemIds { get; set; }
     }
 }

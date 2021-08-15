@@ -2,7 +2,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 
-namespace Projections
+namespace Projections.Cosmos
 {
     public class CosmosViewRepository : IViewRepository
     {
@@ -10,7 +10,8 @@ namespace Projections
         private readonly string _databaseId;
         private readonly string _containerId;
 
-        public CosmosViewRepository(string endpointUrl, string authorizationKey, string databaseId,
+        public CosmosViewRepository(
+            string endpointUrl, string authorizationKey, string databaseId,
             string containerId = "views")
         {
             _client = new CosmosClient(endpointUrl, authorizationKey);
@@ -18,39 +19,41 @@ namespace Projections
             _containerId = containerId;
         }
 
-        public async Task<View> LoadViewAsync(string name)
+        public async Task<IView> LoadViewAsync(string name)
         {
             var container = _client.GetContainer(_databaseId, _containerId);
             var partitionKey = new PartitionKey(name);
 
             try
             {
-                var response = await container.ReadItemAsync<View>(name, partitionKey);
+                var response = await container.ReadItemAsync<CosmosView>(name, partitionKey);
                 return response.Resource;
             }
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
-                return new View();
+                return new CosmosView();
             }
         }
 
-        public async Task<bool> SaveViewAsync(string name, View view)
+        public async Task<bool> SaveViewAsync(string name, IView view)
         {
+            var cView = (CosmosView) view;
             var container = _client.GetContainer(_databaseId, _containerId);
             var partitionKey = new PartitionKey(name);
 
+            
             var item = new 
             {
                 id = name,
-                logicalCheckpoint = view.LogicalCheckpoint,
-                payload = view.Payload
+                logicalCheckpoint = cView.LogicalCheckpoint,
+                payload = cView.Payload
             };
 
             try
             {
                 await container.UpsertItemAsync(item, partitionKey, new ItemRequestOptions
                 {
-                    IfMatchEtag = view.Etag
+                    IfMatchEtag = cView.Etag
                 });
 
                 return true;

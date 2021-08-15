@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using EventStore;
 using Microsoft.Azure.Cosmos;
 
-namespace Projections
+namespace Projections.Cosmos
 {
     public class CosmosProjectionEngine : IProjectionEngine
     {
@@ -20,7 +20,8 @@ namespace Projections
         private readonly List<IProjection> _projections;
         private ChangeFeedProcessor _changeFeedProcessor;
 
-        public CosmosProjectionEngine(IEventTypeResolver eventTypeResolver, IViewRepository viewRepository,
+        public CosmosProjectionEngine(
+            IEventTypeResolver eventTypeResolver, IViewRepository viewRepository,
             string endpointUrl, string authorizationKey, string databaseId, string eventContainerId = "events",
             string leaseContainerId = "leases")
         {
@@ -47,7 +48,7 @@ namespace Projections
             Container leaseContainer = client.GetContainer(_databaseId, _leaseContainerId);
 
             _changeFeedProcessor = eventContainer
-                .GetChangeFeedProcessorBuilder<Change>("Projection", HandleChangesAsync)
+                .GetChangeFeedProcessorBuilder<Change>("CosmosDBProjections", HandleChangesAsync)
                 .WithInstanceName(instanceName)
                 .WithLeaseContainer(leaseContainer)
                 .WithStartTime(new DateTime(2020, 5, 1, 0, 0, 0, DateTimeKind.Utc))
@@ -69,7 +70,7 @@ namespace Projections
 
                 var subscribedProjections = _projections
                     .Where(projection => projection.IsSubscribedTo(@event));
-                
+
                 foreach (var projection in subscribedProjections)
                 {
                     var viewName = projection.GetViewName(change.StreamInfo.Id, @event);
@@ -77,7 +78,7 @@ namespace Projections
                     var handled = false;
                     while (!handled)
                     {
-                        var view = await _viewRepository.LoadViewAsync(viewName);
+                        var view = (CosmosView) await _viewRepository.LoadViewAsync(viewName);
 
                         // Only update if the LSN of the change is higher than the view. This will ensure
                         // that changes are only processed once.
@@ -87,7 +88,7 @@ namespace Projections
                         if (view.IsNewerThanCheckpoint(change))
                         {
                             projection.Apply(@event, view);
-                        
+
                             view.UpdateCheckpoint(change);
 
                             handled = await _viewRepository.SaveViewAsync(viewName, view);
