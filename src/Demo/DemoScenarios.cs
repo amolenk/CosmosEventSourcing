@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -13,15 +12,20 @@ using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Projections;
+using Projections.Cosmos;
+using Projections.MSSQL;
 
 namespace Demo
 {
     [TestClass]
     public class DemoScenarios : IEventTypeResolver
     {
-        private const string EndpointUrl = "https://cosmoseventsourcing.documents.azure.com:443/";
-        private static readonly string AuthorizationKey = Environment.GetEnvironmentVariable("COSMOSDB_EVENT_SOURCING_KEY");
-        private const string DatabaseId = "mydatabase";
+        private const string EndpointUrl = "https://esdemo1.documents.azure.com:443/";
+
+        private static readonly string AuthorizationKey =
+            "qqEPMx1XXZY45M7b0pqdmWzOmBYLZmZRLWAGjWr1TT1Pwj8FaeiU5yU68MFXrJGgDEZG2y9Zhu8lPX8IJsfvTg==";
+        //  Environment.GetEnvironmentVariable("COSMOSDB_EVENT_SOURCING_KEY");
+        private const string DatabaseId = "esdemo1";
 
         public Type GetEventType(string typeName)
         {
@@ -66,7 +70,7 @@ namespace Demo
 
             var meterRegistered = new MeterRegistered
             {
-                MeterId = "87000001",
+                MeterId = "87000003",
                 PostalCode = "1000 AA",
                 HouseNumber = "25",
                 ActivationCode = "542-484"
@@ -158,19 +162,30 @@ namespace Demo
         }
 
         [TestMethod]
-        public async Task SC05B_RunProjectionsAsync()
+        public async Task SC05B_RunCosmosProjectionsAsync()
         {
             IViewRepository viewRepository = new CosmosViewRepository(EndpointUrl, AuthorizationKey, DatabaseId);
             IProjectionEngine projectionEngine = new CosmosProjectionEngine(this, viewRepository, EndpointUrl, AuthorizationKey, DatabaseId);
-
+ 
             projectionEngine.RegisterProjection(new TotalActivatedMetersProjection());
             projectionEngine.RegisterProjection(new DailyTotalsByWeekProjection());
-
+            
             await projectionEngine.StartAsync("TestInstance");
 
             await Task.Delay(-1);
         }
 
+        [TestMethod]
+        public async Task SC05C_RunMSSQLProjectionsAsync()
+        {
+            IProjectionEngine projectionEngine = new MSSQLProjectionEngine(this, EndpointUrl, AuthorizationKey, DatabaseId);
+            
+            projectionEngine.RegisterProjection(new MeterProjector());
+
+            await projectionEngine.StartAsync("TestInstance");
+
+            await Task.Delay(-1);
+        }
         [TestMethod]
         public async Task SC06A_SaveSnapshotAsync()
         {
