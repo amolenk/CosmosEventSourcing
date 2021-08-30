@@ -25,7 +25,7 @@ namespace Demo
         private static readonly string AuthorizationKey =
             "qqEPMx1XXZY45M7b0pqdmWzOmBYLZmZRLWAGjWr1TT1Pwj8FaeiU5yU68MFXrJGgDEZG2y9Zhu8lPX8IJsfvTg==";
         //  Environment.GetEnvironmentVariable("COSMOSDB_EVENT_SOURCING_KEY");
-        private const string DatabaseId = "esdemo1";
+        private const string DatabaseId = "esdemo";
 
         public Type GetEventType(string typeName)
         {
@@ -70,7 +70,7 @@ namespace Demo
 
             var meterRegistered = new MeterRegistered
             {
-                MeterId = "87000003",
+                MeterId = "87000001",
                 PostalCode = "1000 AA",
                 HouseNumber = "25",
                 ActivationCode = "542-484"

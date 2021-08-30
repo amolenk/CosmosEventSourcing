@@ -25,9 +25,15 @@
  
 ---
  
- # Once the table is created you can run this script in your 'Projections' project root folder, and it will create your
- # SQL EF code for you.
+ # This Project already includes Projections/MSSQL/DBSchema/esdemo3Context.cs 
+ # and Projections/MSSQL/DBSchema/Meter.cs
  
+ # Once the table is created you can run this script in your 'Projections' project root folder, 
+ # and it will create your SQL EF code for you.
  
+#  You need to go to  Projections/MSSQL/DBSchema/esdemo3Context.cs  and set the connection string
+# to match the database you created at Azure
 
+# If you alter the table and you want to udpdate your .Net models use this with your correct connection string
+# You should run it from the terminal in the Projections folder location
  dotnet ef dbcontext scaffold "server=myServer;database=myDb;user=myUser;password=myPassword;" "Microsoft.EntityFrameworkCore.SqlServer" -v -f --schema dbo -o MSSQL/DbSchema
