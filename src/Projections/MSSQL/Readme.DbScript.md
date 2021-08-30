@@ -1,13 +1,3 @@
-# Event Sourcing with Azure Cosmos DB
-
-This repository contains an example of an Event Store built on Azure Cosmos DB.
-
-It contains all demo code that I use in my Cosmos Event Sourcing talk. See [here](https://github.com/amolenk/CosmosEventSourcing/blob/master/Event%20Sourcing%20with%20Azure%20Cosmos%20DB.pdf) for the slidedeck.
-
-Demo on YouTube: https://youtu.be/UejwRlmV6E4
-
-# mssql branch notes
-On 8/15/2021, Added the ability to have views written to MSSQL. 
 
   In this example I want a MSSQL
   table that shows the current state of the 
@@ -64,4 +54,3 @@ way of viewing your current state.
  If you alter the table and you want to udpdate your .Net models use this with your correct connection string
  You should run it from the terminal in the Projections folder location
  dotnet ef dbcontext scaffold "server=myServer;database=myDb;user=myUser;password=myPassword;" "Microsoft.EntityFrameworkCore.SqlServer" -v -f --schema dbo -o MSSQL/DbSchema
-

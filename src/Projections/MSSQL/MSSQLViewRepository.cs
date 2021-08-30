@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
@@ -54,22 +55,37 @@ namespace Projections.MSSQL
 
         public async Task<bool> SaveViewAsync(string name, IView view)
         {
-            var sqlView = (MSSQLView) view;
             if (!name.Contains(':'))
             {
                 return false;
             }
-
-            string tableName = name.Substring(0, name.IndexOf(':'));
+            string tableName = name.Substring(0, name.IndexOf(':'))
+                .Trim()
+                .ToLower();
             string rowId = name.Substring(name.IndexOf(':') + 1);
 
+            switch (tableName)
+            {
+                case "meter":
+                    return await SaveMeterAsync(view);
+                default:
+                    throw new Exception("Unexpected type in SaveViewAsync.");
+            }
+        }
+
+        private async Task<bool> SaveMeterAsync(IView view)
+        {
+            var sqlView = (MSSQLView) view;
+           
             var meter = view.Payload.ToObject<Meter>();
             
             // add 2 fields that are used to track 'Handled' status
             meter.LogicalCheckPointLsn = sqlView.LogicalCheckpoint.LogicalSequenceNumber;
             meter.LogicalCheckPointItemIds = string.Join(',', sqlView.LogicalCheckpoint.ItemIds);
 
-            if (sqlView.IsNew)
+            var existingItemInDb = _context.Meters.Any(x => x.MeterId == meter.MeterId);
+            
+            if (sqlView.IsNew && !existingItemInDb)
             {
                 _context.Meters.Add(meter);
             }
