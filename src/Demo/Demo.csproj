@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\EventStore\EventStore.csproj" />
+    <ProjectReference Include="..\Migrator\Migrator.csproj" />
     <ProjectReference Include="..\Projections\Projections.csproj" />
     <ProjectReference Include="..\SnapshotStore\SnapshotStore.csproj" />
   </ItemGroup>

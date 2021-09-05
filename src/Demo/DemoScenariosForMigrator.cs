@@ -11,21 +11,26 @@ using EventStore;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using Migrator;
 using Projections;
 using Projections.Cosmos;
-using Projections.MSSQL;
 
 namespace Demo
 {
     [TestClass]
-    public class DemoScenarios : IEventTypeResolver
+    public class DemoScenariosForMigrator : IEventTypeResolver
     {
         private const string EndpointUrl = "https://esdemo1.documents.azure.com:443/";
 
         private static readonly string AuthorizationKey =
             "qqEPMx1XXZY45M7b0pqdmWzOmBYLZmZRLWAGjWr1TT1Pwj8FaeiU5yU68MFXrJGgDEZG2y9Zhu8lPX8IJsfvTg==";
         //  Environment.GetEnvironmentVariable("COSMOSDB_EVENT_SOURCING_KEY");
-        private const string DatabaseId = "esdemo";
+        private const string DatabaseId = "esdemo2";
+        private string _eventsContainerId = "events";
+        private string _newEventsContainerId = "newevents";
+        private string _leaseContainerId = "leases";
+        private string _viewsContainerId = "views";
+        private string _snapshotContainerId = "snapshots";
 
         public Type GetEventType(string typeName)
         {
@@ -33,25 +38,32 @@ namespace Demo
         }
 
         [TestMethod]
-        public async Task SC00_MigrateDB()
+        public async Task SC00_CreateDB()
         {
             CosmosClient client = new CosmosClient(EndpointUrl, AuthorizationKey);
-            
+
             await client.CreateDatabaseIfNotExistsAsync(DatabaseId, ThroughputProperties.CreateManualThroughput(400));
             Database database = client.GetDatabase(DatabaseId);
 
-            await database.DefineContainer("events", "/stream/id").CreateIfNotExistsAsync();
-            await database.DefineContainer("leases", "/id").CreateIfNotExistsAsync();
-            await database.DefineContainer("views", "/id").CreateIfNotExistsAsync();
-            await database.DefineContainer("snapshots", "/id").CreateIfNotExistsAsync();
+            await database.DefineContainer(_eventsContainerId, "/stream/id").CreateIfNotExistsAsync();
+            await database.DefineContainer(_newEventsContainerId, "/stream/id").CreateIfNotExistsAsync();
+            await database.DefineContainer(_leaseContainerId, "/id").CreateIfNotExistsAsync();
+            await database.DefineContainer(_viewsContainerId, "/id").CreateIfNotExistsAsync();
+            await database.DefineContainer(_snapshotContainerId, "/id").CreateIfNotExistsAsync();
 
+            await AddStoredProc(database, _eventsContainerId);
+            await AddStoredProc(database, _newEventsContainerId);
+        }
+
+        private async Task AddStoredProc(Database database, string containerId)
+        {
             StoredProcedureProperties storedProcedureProperties = new StoredProcedureProperties
             {
                 Id = "spAppendToStream",
                 Body = File.ReadAllText("js/spAppendToStream.js")
             };
 
-            Container eventsContainer = database.GetContainer("events");
+            Container eventsContainer = database.GetContainer(containerId);
             try
             {
                 await eventsContainer.Scripts.DeleteStoredProcedureAsync("spAppendToStream");
@@ -59,14 +71,16 @@ namespace Demo
             catch (CosmosException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
             {
                 // Stored procedure didn't exist yet.
-            } 
+            }
+
             await eventsContainer.Scripts.CreateStoredProcedureAsync(storedProcedureProperties);
         }
 
         [TestMethod]
         public async Task SC01_CreateStreamAsync()
         {
-            IEventStore eventStore = new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId);
+            IEventStore eventStore =
+                new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId, _eventsContainerId);
 
             var meterRegistered = new MeterRegistered
             {
@@ -102,7 +116,7 @@ namespace Demo
                 Date = new DateTime(2020, 4, 30),
                 Readings = GenerateMeterReadings(new DateTime(2020, 4, 30)).ToArray()
             };
-                
+
             var succes = await eventStore.AppendToStreamAsync(
                 streamId,
                 stream.Version,
@@ -115,7 +129,7 @@ namespace Demo
         public async Task SC03_DomainAddAsync()
         {
             IEventStore eventStore = new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId);
-            
+
             // Request parameters.
             var meterId = "87000002";
             var postalCode = "9999 BB";
@@ -135,7 +149,7 @@ namespace Demo
         public async Task SC04_DomainUpdateAsync()
         {
             IEventStore eventStore = new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId);
-            
+
             // Request parameters.
             var meterId = "87000002";
             var activationCode = "745-195";
@@ -161,47 +175,39 @@ namespace Demo
                 AppendReadingsCollectedEvents("meter:87000002", new DateTime(2020, 5, 1), 14));
         }
 
+
         [TestMethod]
         public async Task SC05B_RunCosmosProjectionsAsync()
         {
             IViewRepository viewRepository = new CosmosViewRepository(EndpointUrl, AuthorizationKey, DatabaseId);
-            IProjectionEngine projectionEngine = new CosmosProjectionEngine(this, viewRepository, EndpointUrl, AuthorizationKey, DatabaseId);
- 
+            IProjectionEngine projectionEngine =
+                new CosmosProjectionEngine(this, viewRepository, EndpointUrl, AuthorizationKey, DatabaseId);
+
             projectionEngine.RegisterProjection(new TotalActivatedMetersProjection());
             projectionEngine.RegisterProjection(new DailyTotalsByWeekProjection());
-            
+
             await projectionEngine.StartAsync("TestInstance");
 
             await Task.Delay(-1);
         }
 
         [TestMethod]
-        public async Task SC05C_RunMSSQLProjectionsAsync()
+        public async Task SC05B_RunCosmosMigrator()
         {
-            IProjectionEngine projectionEngine = new MSSQLProjectionEngine(this, EndpointUrl, AuthorizationKey, DatabaseId);
-            
-            projectionEngine.RegisterProjection(new MeterProjector());
+            IMigrationEngine migrationEngine = new CosmosMigrationEngine(
+                this,
+                EndpointUrl,
+                AuthorizationKey,
+                DatabaseId,
+                _eventsContainerId,
+                _newEventsContainerId,
+                _leaseContainerId);
 
-            await projectionEngine.StartAsync("TestInstance");
+            migrationEngine.RegisterMigration(new MeterMigrator());
+
+            await migrationEngine.StartAsync("TestInstance");
 
             await Task.Delay(-1);
-        }
-        [TestMethod]
-        public async Task SC06A_SaveSnapshotAsync()
-        {
-            IEventStore eventStore = new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId);
-            ISnapshotStore snapshotStore = new CosmosSnapshotStore(EndpointUrl, AuthorizationKey, DatabaseId);
-            
-            // Request parameters.
-            var meterId = "87000001";
-
-            // Load domain object.
-            var repository = new MeterRepository(eventStore);
-            var meter = await repository.LoadMeterAsync(meterId);
-
-            var snapshot = meter.GetSnapshot();
-
-            await snapshotStore.SaveSnapshotAsync($"meter:{meterId}", meter.Version, snapshot);
         }
 
         [TestMethod]
@@ -211,25 +217,6 @@ namespace Demo
             return AppendReadingsCollectedEvents("meter:87000001", new DateTime(2020, 5, 15), 3);
         }
 
-        [TestMethod]
-        public async Task SC06C_LoadSnapshotAsync()
-        {
-            IEventStore eventStore = new CosmosEventStore(this, EndpointUrl, AuthorizationKey, DatabaseId);
-            ISnapshotStore snapshotStore = new CosmosSnapshotStore(EndpointUrl, AuthorizationKey, DatabaseId);
-            
-            var repository = new MeterRepositorySnapshotDecorator(
-                eventStore,
-                snapshotStore,
-                new MeterRepository(eventStore));
-
-            // Request parameters.
-            var meterId = "87000001";
-
-            // Load domain object.
-            var meter = await repository.LoadMeterAsync(meterId);
-
-            Assert.AreEqual(20, meter.Version);
-        }
 
         #region Helper Methods
 
@@ -248,7 +235,7 @@ namespace Demo
                     Readings = GenerateMeterReadings(fromDate.AddDays(i)).ToArray()
                 })
                 .ToList();
-            
+
             await eventStore.AppendToStreamAsync(streamId, stream.Version, events);
 
             // Wait a little while before adding the last one.
@@ -265,7 +252,9 @@ namespace Demo
                 }
             });
         }
+
         private static readonly Random _rand = new Random();
+
         private IEnumerable<MeterReading> GenerateMeterReadings(DateTime date)
         {
             for (int i = 1; i <= 96; i++)
