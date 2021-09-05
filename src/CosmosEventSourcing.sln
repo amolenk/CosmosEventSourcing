@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Demo", "Demo\Demo.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapshotStore", "SnapshotStore\SnapshotStore.csproj", "{28421C0A-9D73-4112-8383-775F3EBC7515}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Migrator", "Migrator\Migrator.csproj", "{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -31,5 +33,9 @@ Global
 		{28421C0A-9D73-4112-8383-775F3EBC7515}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28421C0A-9D73-4112-8383-775F3EBC7515}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{28421C0A-9D73-4112-8383-775F3EBC7515}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
