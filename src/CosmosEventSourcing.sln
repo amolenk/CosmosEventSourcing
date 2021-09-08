@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SnapshotStore", "SnapshotSt
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Migrator", "Migrator\Migrator.csproj", "{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CosmosValidate", "CosmosValidate\CosmosValidate.csproj", "{E2FF9E0E-E4CC-4029-992F-BBAC118C85B1}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -37,5 +39,9 @@ Global
 		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{DE6285B6-56E1-4FAC-8262-0D382F9D52F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2FF9E0E-E4CC-4029-992F-BBAC118C85B1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2FF9E0E-E4CC-4029-992F-BBAC118C85B1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2FF9E0E-E4CC-4029-992F-BBAC118C85B1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2FF9E0E-E4CC-4029-992F-BBAC118C85B1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

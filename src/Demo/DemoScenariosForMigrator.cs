@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Demo.Domain;
 using Demo.Domain.Events;
 using Demo.Domain.Projections;
+using Demo.Migrations;
 using EventStore;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;

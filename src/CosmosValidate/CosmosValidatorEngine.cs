@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 using EventStore;
 using Microsoft.Azure.Cosmos;
 
-namespace Migrator
+namespace CosmosValidate
 {
-    public class CosmosMigrationEngine : IMigrationEngine
+    public class CosmosValidatorEngine : IValidatorEngine
     {
         private readonly IEventTypeResolver _eventTypeResolver;
         private readonly string _endpointUrl;
@@ -17,10 +17,10 @@ namespace Migrator
         private readonly string _originalEventContainerId;
         private readonly string _outputEventContainerId;
         private readonly string _leaseContainerId;
-        private readonly List<IMigrator> _migrators;
+        private readonly List<IValidator> _validators;
         private ChangeFeedProcessor _changeFeedProcessor;
 
-        public CosmosMigrationEngine(
+        public CosmosValidatorEngine(
             IEventTypeResolver eventTypeResolver,
             string endpointUrl,
             string authorizationKey,
@@ -36,13 +36,14 @@ namespace Migrator
             _originalEventContainerId = originalEventContainerId;
             _outputEventContainerId = outputEventContainerId;
             _leaseContainerId = leaseContainerId;
-            _migrators = new List<IMigrator>();
+            _validators = new List<IValidator>();
         }
 
-        public void RegisterMigration(IMigrator migrator)
+        public void RegisterComparer(IValidator validator)
         {
-            _migrators.Add(migrator);
+            _validators.Add(validator);
         }
+ 
 
         public Task StartAsync(string instanceName)
         {
@@ -52,7 +53,7 @@ namespace Migrator
             Container leaseContainer = client.GetContainer(_databaseId, _leaseContainerId);
 
             _changeFeedProcessor = eventContainer
-                .GetChangeFeedProcessorBuilder<Change>("CosmosDBMigrations", HandleChangesAsync)
+                .GetChangeFeedProcessorBuilder<Change>("CosmosDBCompares", HandleChangesAsync)
                 .WithInstanceName(instanceName)
                 .WithLeaseContainer(leaseContainer)
                 .WithStartTime(new DateTime(2020, 5, 1, 0, 0, 0, DateTimeKind.Utc))
@@ -79,34 +80,32 @@ namespace Migrator
             var outputEventStore = GetOutputEventStore();
             foreach (var change in changes)
             {
+                
                 var @event = change.GetEvent(_eventTypeResolver);
-
-                var subscribedMigrator = _migrators
+  
+                var validator = _validators
                     .SingleOrDefault(m => m.IsSubscribedTo(@event));
                 
-                IEvent newEvent = subscribedMigrator != null
-                    ? subscribedMigrator.Transform(@event)
-                    : @event;
+                EventWrapper expectedEventWrapper = validator != null
+                    ? validator.Transform(change)
+                    : change;
                 
-                string newStreamId = subscribedMigrator != null
-                    ? subscribedMigrator.GetNewStreamId(change.StreamInfo.Id)
-                    : change.StreamInfo.Id;
-                
-                var saved = await outputEventStore.AppendToStreamAsync(
-                    newStreamId,
-                    change.StreamInfo.Version - 1,
-                    new[] { newEvent });
-
-                if (!saved)
+                EventWrapper actualEventWrapper;
+                try
                 {
-                    var existingStream = await outputEventStore.LoadStreamAsync(newStreamId, change.StreamInfo.Version);
-                    if (!existingStream.Events.Any())
-                    {
-                        // If it didn't save and it isn't already there,
-                        // I want to stop now and find out why.
-                        throw new ApplicationException(
-                            "Could not save migrated item even though it didn't already exist.");
-                    }
+                    actualEventWrapper = await outputEventStore.LoadEventWrapperAsync(expectedEventWrapper.Id);
+                }
+                catch (Exception ex)
+                {
+                    throw new ApplicationException(
+                        $"Error when trying to load eventWrapper with Id" +
+                        $" {expectedEventWrapper.Id}. {ex.Message} + {ex.InnerException?.Message}");
+                }
+
+                if (!Validator.Equals(expectedEventWrapper, actualEventWrapper))
+                {
+                    throw new ApplicationException($"Failed to match {change.Id} from original container with" +
+                                                   $" {expectedEventWrapper.Id} on new container");
                 }
             }
         }

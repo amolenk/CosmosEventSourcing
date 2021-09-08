@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.Azure.Cosmos;
 using Newtonsoft.Json;
@@ -24,6 +26,23 @@ namespace EventStore
             _containerId = containerId;
         }
 
+        public async Task<EventWrapper> LoadEventWrapperAsync(string eventId)
+        {
+            Container container = _client.GetContainer(_databaseId, _containerId);
+
+            var sqlQueryText = "SELECT * FROM events e"
+                               + " WHERE e.id = @eventId";
+
+            QueryDefinition queryDefinition = new QueryDefinition(sqlQueryText)
+                .WithParameter("@eventId", eventId);
+            
+            FeedIterator<EventWrapper> feedIterator = container.GetItemQueryIterator<EventWrapper>(queryDefinition);
+
+            FeedResponse<EventWrapper> response = await feedIterator.ReadNextAsync();
+            EventWrapper item = response.Resource.FirstOrDefault();
+            return item;
+         
+        }
         public async Task<EventStream> LoadStreamAsync(string streamId)
         {
             Container container = _client.GetContainer(_databaseId, _containerId);
@@ -49,7 +68,6 @@ namespace EventStore
                     events.Add(eventWrapper.GetEvent(_eventTypeResolver));
                 }
             }
-
             return new EventStream(streamId, version, events);
         }
 

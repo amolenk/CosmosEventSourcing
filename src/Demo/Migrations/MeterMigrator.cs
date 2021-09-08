@@ -5,7 +5,7 @@ using Demo.Domain.Events;
 using EventStore;
 using Projections;
 
-namespace Demo.Domain.Projections
+namespace Demo.Migrations
 {
    
     

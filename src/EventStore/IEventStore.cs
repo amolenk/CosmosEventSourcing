@@ -5,6 +5,7 @@ namespace EventStore
 {
     public interface IEventStore
     {
+
         Task<EventStream> LoadStreamAsync(string streamId);
 
         Task<EventStream> LoadStreamAsync(string streamId, int fromVersion);
