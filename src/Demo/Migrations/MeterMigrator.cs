@@ -27,30 +27,39 @@ namespace Demo.Migrations
 
         private IEvent Map(MeterRegistered e)
         {
-            return new MonitorRegistered(e.MeterId, e.PostalCode, e.HouseNumber, e.ActivationCode);
+            var retVal = new MonitorRegistered(e.MeterId, e.PostalCode, e.HouseNumber, e.ActivationCode);
+            retVal.Timestamp = e.Timestamp;
+            return retVal;
         }
 
         private IEvent Map(MeterActivated e)
         {
-            return new MonitorActivated();
-
+            var retVal = new MonitorActivated();
+            retVal.Timestamp = e.Timestamp;
+            return retVal;
         }
 
         private IEvent Map(MeterDeregistered e)
         {
-            return new MonitorDeregistered(e.MeterId);
+            var retVal = new MonitorDeregistered(e.MeterId);
+            retVal.Timestamp = e.Timestamp;
+            return retVal;
         }
 
         private IEvent Map(MeterActivationFailed e)
         {
-            return new MonitorActivationFailed(e.ActivationCode);
+            var retVal = new MonitorActivationFailed(e.ActivationCode);
+            retVal.Timestamp = e.Timestamp;
+            return retVal;
         }
 
         private IEvent Map(MeterReadingsCollected e)
         {
             var monitorReadings = 
                 e.Readings.Select(t => new MonitorReading(t.Timestamp, t.Value)).ToList();
-            return new MonitorReadingsCollected(e.Date, monitorReadings.ToArray());
+            var retVal = new MonitorReadingsCollected(e.Date, monitorReadings.ToArray());
+            retVal.Timestamp = e.Timestamp;
+            return retVal;
         }
        
     }

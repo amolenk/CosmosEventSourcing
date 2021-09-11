@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using CosmosValidate;
 using Demo.Domain;
 using Demo.Domain.Events;
 using Demo.Domain.Projections;
@@ -11,6 +12,8 @@ using Demo.Migrations;
 using EventStore;
 using Microsoft.Azure.Cosmos;
 using Microsoft.Azure.Cosmos.Scripts;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Migrator;
 using Projections;
@@ -21,10 +24,10 @@ namespace Demo
     [TestClass]
     public class DemoScenariosForMigrator : IEventTypeResolver
     {
-        private const string EndpointUrl = "https://esdemo1.documents.azure.com:443/";
+        private const string EndpointUrl = "https://esdemomarc.documents.azure.com:443/";
 
         private static readonly string AuthorizationKey =
-            "qqEPMx1XXZY45M7b0pqdmWzOmBYLZmZRLWAGjWr1TT1Pwj8FaeiU5yU68MFXrJGgDEZG2y9Zhu8lPX8IJsfvTg==";
+            "2l33UHWU5wZ7wGEwVTBhDOAXLh0GB6HxXsDEDwtPBtnVxHCnOZGSgB5JPUktSye58sbEDKV1xuZkIxUI8wRXsQ==";
         //  Environment.GetEnvironmentVariable("COSMOSDB_EVENT_SOURCING_KEY");
         private const string DatabaseId = "esdemo2";
         private string _eventsContainerId = "events";
@@ -32,6 +35,8 @@ namespace Demo
         private string _leaseContainerId = "leases";
         private string _viewsContainerId = "views";
         private string _snapshotContainerId = "snapshots";
+        private string _validationSuccessContainerId = "pass";
+        private string _validationFailureContainerId = "fail";
 
         public Type GetEventType(string typeName)
         {
@@ -207,6 +212,27 @@ namespace Demo
             migrationEngine.RegisterMigration(new MeterMigrator());
 
             await migrationEngine.StartAsync("TestInstance");
+
+            await Task.Delay(-1);
+        }
+        
+        [TestMethod]
+        public async Task SC05B_RunCosmosValidator()
+        {
+            IValidatorEngine validatorEngine = new CosmosValidatorEngine(
+                this,
+                EndpointUrl,
+                AuthorizationKey,
+                DatabaseId,
+                _eventsContainerId,
+                _newEventsContainerId,
+                _validationSuccessContainerId,
+                _validationFailureContainerId,
+                _leaseContainerId);
+
+            validatorEngine.RegisterComparer(new MeterValidator());
+
+            await validatorEngine.StartAsync("TestInstance");
 
             await Task.Delay(-1);
         }
